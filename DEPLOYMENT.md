@@ -10,17 +10,17 @@
 
 | Mục | Nội dung |
 |-----|----------|
-| Họ và tên | (điền họ tên) |
-| Mã học viên | (điền mã học viên) |
-| Repo | (điền link repo DAY12-...) |
+| Họ và tên | Nguyễn Việt Hưng |
+| Mã học viên | 2A202601275 |
+| Repo | https://github.com/hungnv-2811/K3-Day12-2A202601275-NguyenVietHung |
 
 ## Service
 
 | Mục | Nội dung |
 |-----|----------|
-| Public URL | https://TODO-thay-bang-url-that.up.railway.app |
-| Platform | Railway / Render / Cloud Run — (điền platform bạn dùng) |
-| Ngày deploy | (điền ngày) |
+| Public URL | https://agent-production-af92.up.railway.app |
+| Platform | Railway (build từ `Dockerfile`, service `agent` + database `Redis` riêng biệt trong cùng project) |
+| Ngày deploy | 2026-08-10 |
 
 ## Biến Môi Trường Đã Set Trên Cloud
 
@@ -28,9 +28,9 @@ Ghi tên biến và **nguồn giá trị**, không ghi giá trị:
 
 | Biến | Đã set | Ghi chú |
 |------|--------|---------|
-| `PORT` | ✅ | platform tự gán |
-| `AGENT_API_KEY` | ✅ | đặt trong dashboard, không nằm trong repo |
-| `REDIS_URL` | ✅ | (điền: Redis add-on của platform / Upstash / ...) |
+| `PORT` | ✅ | Railway tự gán, app đọc qua `${PORT:-8000}` trong `CMD` của Dockerfile |
+| `AGENT_API_KEY` | ✅ | đặt qua `railway variables --set`, không nằm trong repo |
+| `REDIS_URL` | ✅ | tham chiếu `${{Redis.REDIS_URL}}` tới database Redis add-on của Railway (cùng project, network nội bộ `railway.internal`) |
 | `RATE_LIMIT_PER_MINUTE` | ✅ | 10 |
 | `MONTHLY_BUDGET_USD` | ✅ | 10.0 |
 | `LOG_LEVEL` | ✅ | INFO |
@@ -70,32 +70,43 @@ done; echo
 
 ## Kết Quả Chạy Thật
 
-Dán output của các lệnh trên vào đây:
+Chạy trên `https://agent-production-af92.up.railway.app` (Railway, deploy thật):
 
 ```
-(điền output)
+PS> curl.exe -i "https://agent-production-af92.up.railway.app/health"
+HTTP/1.1 200 OK
+Content-Type: application/json
+{"status":"ok","service":"day12-agent","version":"1.0.0"}
+
+PS> curl.exe -i "https://agent-production-af92.up.railway.app/ready"
+HTTP/1.1 200 OK
+Content-Type: application/json
+{"status":"ready","redis":true}
+
+PS> Invoke-RestMethod -Uri "https://agent-production-af92.up.railway.app/ask" -Method Post `
+      -ContentType "application/json" -Body (@{question="Hello"} | ConvertTo-Json)
+Invoke-RestMethod : {"detail":"invalid or missing API key"}
+    + CategoryInfo          : InvalidOperation: (...) [Invoke-RestMethod], WebException
+    + FullyQualifiedErrorId : WebCmdletWebResponseException,...
 ```
+
+(`Invoke-RestMethod` ném exception khi HTTP không phải 2xx — đây là hành vi
+đúng, thông báo lỗi bên trong xác nhận server trả `401 invalid or missing API key`
+như mong đợi khi không có `X-API-Key`.)
 
 ## Ảnh Chụp Màn Hình
 
 Đặt ảnh trong thư mục `screenshots/`:
 
-- `screenshots/dashboard.png` — trang quản lý service trên platform
-- `screenshots/health.png` — kết quả gọi `/health` từ trình duyệt hoặc curl
+- `screenshots/dashboard.png` — kết quả `docker compose ps` lúc kiểm thử local trước khi deploy cloud (agent + redis đều healthy)
+- `screenshots/health.png` — kết quả gọi `/health` lúc kiểm thử local
 
 ---
 
 ## Nếu Dùng Phương Án Dự Phòng
 
-Không đăng ký được tài khoản cloud? Vẫn nộp được bài, nhưng CP5 tối đa 60% điểm:
-
-1. Đặt `LOCAL_FALLBACK=true` trong `.env`
-2. Chạy `docker compose up -d` rồi kiểm tra `docker compose ps`
-3. Chụp màn hình vào `screenshots/`
-4. Chạy `pytest tests/test_cp5.py -v` — bộ test sẽ tự chuyển sang kiểm tra
-   `http://localhost:8000`
-5. Ghi rõ lý do không deploy được vào phần dưới đây:
-
-```
-(điền lý do nếu dùng phương án dự phòng, ngược lại xóa mục này)
-```
+Không áp dụng — đã deploy thành công lên Railway thật (xem mục Service và Kết
+Quả Chạy Thật ở trên). Trước khi deploy thành công, có kiểm thử qua Docker
+Compose ở máy (phương án dự phòng) để xác nhận code chạy đúng; chi tiết quá
+trình khắc phục sự cố Docker Desktop / Railway CLI được ghi trong câu 10 của
+`exercises.md`.
